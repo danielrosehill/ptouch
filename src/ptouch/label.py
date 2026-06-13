@@ -146,21 +146,27 @@ class TextLabel(Label):
         if self._image is not None:
             return  # Already rendered
 
+        # When auto-sizing, fit all lines into 80% of the print height so
+        # multi-line text (separated by "\n") shrinks to fit instead of
+        # overflowing the tape.
+        num_lines = self.text.count("\n") + 1
+        auto_font_size = max(1, int(height * 0.8 / num_lines))
+
         # Build a loader that can re-create the font at an arbitrary size, so we
         # can shrink it to fit a fixed width. can_resize is False for bitmap
         # fonts that cannot be scaled.
         if isinstance(self.font, str):
             if self.auto_size:
-                font_size = int(height * 0.8)
+                font_size = auto_font_size
             else:
-                font_size = self.font_size if self.font_size is not None else int(height * 0.8)
+                font_size = self.font_size if self.font_size is not None else auto_font_size
 
             def load_font(size: int) -> ImageFont.FreeTypeFont:
                 return ImageFont.truetype(self.font, size)
 
             can_resize = True
         elif hasattr(self.font, "font_variant") and getattr(self.font, "size", None):
-            font_size = int(height * 0.8) if self.auto_size else int(self.font.size)
+            font_size = auto_font_size if self.auto_size else int(self.font.size)
 
             def load_font(size: int) -> ImageFont.FreeTypeFont:
                 return self.font.font_variant(size=size)
